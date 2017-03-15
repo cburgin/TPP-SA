@@ -14,6 +14,9 @@ __status__ = "in progress"
 # Standard Python Libraries
 import argparse
 
+# TTSA Includes
+from ttsa import TTSA
+
 
 def main():
     #Parse the command line arguments provided at run time.
@@ -23,6 +26,8 @@ def main():
 
     # Parse the input arguments
     args = parser.parse_args()
+
+    ttsa = TTSA(args.number_teams[0])
 
 if __name__ =='__main__':
     main()
