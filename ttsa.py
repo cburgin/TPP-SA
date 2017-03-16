@@ -18,13 +18,20 @@ import operator, itertools
 class TTSA():
     """Traveling Tournament Simulated Annealing"""
 
-    def __init__(self, number_teams):
+    def __init__(self, number_teams, seed):
 
+        # Calculate schedule vars.
         self.number_teams = number_teams
         self.weeks = (2 * self.number_teams) - 2
 
+        # Seed PRNG
+        random.seed(seed)
+
         # Build a starting schedule
         self.S = self.build_schedule(self.number_teams)
+        self.print_schedule(self.S)
+
+        S = self.swap_homes(self.S)
         self.print_schedule(self.S)
 
 
@@ -70,7 +77,10 @@ class TTSA():
             if result_S is not None:
                 return result_S
 
-    # Check to see if the schedule is full
+        # Catch all
+        return None
+
+    # Check to see if the schedule is full, inefficent
     def schedule_full(self, S):
         for week in S:
             for game in week:
@@ -115,3 +125,28 @@ class TTSA():
         print("\nThe Current Schedule\n")
         for row in S:
             print(*row, sep="\t")
+
+    # The move swaps the home and away roles of team T in pos i and j
+    # Because this is a random choice every time the function is called the
+    #   choice is made inside of the function.
+    def swap_homes(self, S):
+        # Choose a team to swap on
+        team  = len(S) - 1
+        swap_loc = S[team].index(random.choice(S[team]))
+        swap_loc_mirror = S[team].index(self.home_away(S[team][swap_loc]))
+
+        # Swap the first game and its opponent
+        S[team][swap_loc] = self.home_away(S[team][swap_loc])
+        S = self.set_opponent(S, team, swap_loc)
+
+        # Swap the matching game and its opponent
+        S[team][swap_loc_mirror] = self.home_away(S[team][swap_loc_mirror])
+        S = self.set_opponent(S, team, swap_loc_mirror)
+
+        return S
+
+    def home_away(self, game):
+        if game[1] is 'home':
+            return (game[0], 'away')
+        else:
+            return (game[0], 'home')

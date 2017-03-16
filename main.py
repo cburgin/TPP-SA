@@ -23,11 +23,13 @@ def main():
     parser = argparse.ArgumentParser(description='Traveling Tournament Problem using Simulated Annealing')
     parser.add_argument('-n', '--number_teams', dest='number_teams', metavar='N',
                         type=int, nargs=1 ,help='Provide the number of teams (even) that should be scheduled')
+    parser.add_argument('-s', '--seed', dest='seed', metavar='S',
+                        type=int, nargs='?', default=0, help='Provide the seed for the PRNG')
 
     # Parse the input arguments
     args = parser.parse_args()
 
-    ttsa = TTSA(args.number_teams[0])
+    ttsa = TTSA(args.number_teams[0], args.seed)
 
 if __name__ =='__main__':
     main()
