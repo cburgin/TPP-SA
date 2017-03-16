@@ -31,7 +31,7 @@ class TTSA():
         self.S = self.build_schedule(self.number_teams)
         self.print_schedule(self.S)
 
-        S = self.swap_homes(self.S)
+        S = self.swap_rounds(self.S)
         self.print_schedule(self.S)
 
 
@@ -117,18 +117,9 @@ class TTSA():
 
         return available
 
-    def str_schedule(self, S):
-        return '\n'.join(''.join(['%16s'%(col,) for col in row]) for row in S)+'\n'
-
-    # Prints the schedule in a way that is readable
-    def print_schedule(self, S):
-        print("\nThe Current Schedule\n")
-        for row in S:
-            print(*row, sep="\t")
-
     # The move swaps the home and away roles of team T in pos i and j
-    # Because this is a random choice every time the function is called the
-    #   choice is made inside of the function.
+    # Because this is going to be a random choice everytime the function is called,
+    #   the choice is just made inside of the function instead of being passed in.
     def swap_homes(self, S):
         # Choose a team to swap on
         team  = len(S) - 1
@@ -145,8 +136,35 @@ class TTSA():
 
         return S
 
+    # Given a game, swap the home/awayness of that game
     def home_away(self, game):
         if game[1] is 'home':
             return (game[0], 'away')
         else:
             return (game[0], 'home')
+
+    # The move simply swaps rounds k and l
+    # Because this is going to be a random choice everytime the function is called,
+    #   the choice is just made inside of the function instead of being passed in.
+    def swap_rounds(self, S):
+        # Choose two different rounds to swap
+        choices = random.sample(list(range(len(S)-1)), 2)
+
+        # Iterate through the teams swapping each rounds
+        for team in range(len(S)):
+            game_one = S[team][choices[0]]
+            game_two = S[team][choices[1]]
+            S[team][choices[0]] = game_two
+            S[team][choices[1]] = game_one
+
+        return S
+
+    # Print Functions for the Schedule
+    def str_schedule(self, S):
+        return '\n'.join(''.join(['%16s'%(col,) for col in row]) for row in S)+'\n'
+
+    # Prints the schedule in a way that is readable
+    def print_schedule(self, S):
+        print("\nThe Current Schedule\n")
+        for row in S:
+            print(*row, sep="\t")
