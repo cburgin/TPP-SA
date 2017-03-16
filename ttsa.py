@@ -13,6 +13,7 @@ __status__ = "in progress"
 
 # Standard Python Libraries
 import random
+import operator, itertools
 
 class TTSA():
     """Traveling Tournament Simulated Annealing"""
@@ -20,6 +21,7 @@ class TTSA():
     def __init__(self, number_teams):
 
         self.number_teams = number_teams
+        self.weeks = (2 * self.number_teams) - 2
 
         # Build a starting schedule
         self.S = self.build_schedule(self.number_teams)
@@ -29,24 +31,52 @@ class TTSA():
     # Builds a random starting schedule to build and improve on
     def build_schedule(self, number_teams):
         # Create an empty schedule
-        rounds = (2 * number_teams) - 2
-        S = [[None for i in range(rounds)] for j in range(number_teams)]
+        S = [[None for i in range(self.weeks)] for j in range(number_teams)]
 
-        # Populate the first row (team) with random values (opponents)
-        home = lambda x: (x, "home")
-        away = lambda x: (x, "away")
-        S[0] = [f(x) for x in range(2, number_teams + 1) for f in (home, away)]
+        # Call the recursive build function
+        return self.r_build_schedule(S, 0, 0)
 
-        # Populate the rest of the schedule by backtracking from the first row
-        for i in range(len(S)):
-            for j in range(len(S[i])):
-                if S[i][j] is not None:
-                    S = self.set_opponent(S, i, j)
-                else:
-                    S = self.get_opponent(S, i, j)
-                    S = self.set_opponent(S, i, j)
+    # Recursive part of build schedule
+    def r_build_schedule(self, S, team, week):
+        # If the schedule is full then return becuase it is complete
+        if self.schedule_full(S):
+            return S
 
-        return S
+        # Calculate the next location
+        next_week = week + 1
+        next_team = team
+        if next_week == self.weeks:
+            next_week = 0
+            next_team += 1
+
+        # If there is already a game scheduled then move forward
+        if S[team][week] is not None:
+            return self.r_build_schedule(S, next_team, next_week)
+
+        # Find all of the possible games that can be scheduled, return if it isn't schedulable
+        possibilities = self.get_game(S, team, week)
+        random.shuffle(possibilities)
+        if possibilities is None:
+            return None
+
+        # Try all the possible games until one works
+        for p in possibilities:
+            try_S = [[c for c in r] for r in S]
+            # Set the game as well as the opponent
+            try_S[team][week] = p
+            self.set_opponent(try_S, team, week)
+            # Move forward with this attempt
+            result_S = self.r_build_schedule(try_S, next_team, next_week)
+            if result_S is not None:
+                return result_S
+
+    # Check to see if the schedule is full
+    def schedule_full(self, S):
+        for week in S:
+            for game in week:
+                if game is None:
+                    return False
+        return True
 
     # Given the schedule and a specfic match, schedule the opponent for that match
     def set_opponent(self, S, i, j):
@@ -58,23 +88,30 @@ class TTSA():
 
         return S
 
-    # Given the schedule and an empty slot, schedule a match with an available team
-    def set_opponent(self, S, i, j):
+    # Given the schedule and an empty slot, determine the possible games that can be scheduled here
+    def get_game(self, S, i, j):
         # Create a list of available teams
-        rounds = (2 * number_teams) - 2
         home = lambda x: (x, "home")
         away = lambda x: (x, "away")
-        available = [f(x) for x in range(2, number_teams + 1) for f in (home, away)]
+        available = [f(x) for x in range(1, self.number_teams+1) for f in (home, away)]
 
         # Remove self from list
-        available = [l for l in available if l[0] is not i]
+        available = [k for k in available if k[0] is not i+1]
 
-        # Remove existing games
+        # Remove games that this team already has on its schedule
+        available = [l for l in available if l not in S[i]]
 
+        # Remove opponents that are in concurrent games
+        col = [o[0] for o in [row[j] for row in S] if o is not None]
+        available = [m for m in available if m[0] not in col]
+
+        return available
+
+    def str_schedule(self, S):
+        return '\n'.join(''.join(['%16s'%(col,) for col in row]) for row in S)+'\n'
 
     # Prints the schedule in a way that is readable
     def print_schedule(self, S):
         print("\nThe Current Schedule\n")
-        rounds = (2 * self.number_teams) - 2
         for row in S:
             print(*row, sep="\t")
