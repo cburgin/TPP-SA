@@ -25,11 +25,13 @@ def main():
                         type=int, nargs=1 ,help='Provide the number of teams (even) that should be scheduled')
     parser.add_argument('-s', '--seed', dest='seed', metavar='S',
                         type=int, nargs='?', default=0, help='Provide the seed for the PRNG')
+    parser.add_argument('-d', '--default_schedule', dest='default_schedule', metavar='D',
+                        type=bool, nargs='?', default=False, help='Set True to use the schedule in the paper')
 
     # Parse the input arguments
     args = parser.parse_args()
 
-    ttsa = TTSA(args.number_teams[0], args.seed)
+    ttsa = TTSA(args.number_teams[0], args.seed, args.default_schedule)
 
 if __name__ =='__main__':
     main()

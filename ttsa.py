@@ -18,7 +18,7 @@ import operator, itertools
 class TTSA():
     """Traveling Tournament Simulated Annealing"""
 
-    def __init__(self, number_teams, seed):
+    def __init__(self, number_teams, seed, default_schedule):
 
         # Calculate schedule vars.
         self.number_teams = number_teams
@@ -27,11 +27,21 @@ class TTSA():
         # Seed PRNG
         random.seed(seed)
 
-        # Build a starting schedule
-        self.S = self.build_schedule(self.number_teams)
-        self.print_schedule(self.S)
+        # Build a starting schedule or use the starting schedule from the paper
+        if default_schedule is False:
+            self.S = self.build_schedule(self.number_teams)
+        else:
+            self.S = [[(6, 'home'), (2, 'away'), (4, 'home'), (3, 'home'), (5, 'away'), (4, 'away'), (3, 'away'), (5, 'home'), (2, 'home'), (6, 'away')],
+                      [(5, 'home'), (1, 'home'), (3, 'away'), (6, 'away'), (4, 'home'), (3, 'home'), (6, 'home'), (4, 'away'), (1, 'away'), (5, 'away')],
+                      [(4, 'away'), (5, 'home'), (2, 'home'), (1, 'away'), (6, 'home'), (2, 'away'), (1, 'home'), (6, 'away'), (5, 'away'), (4, 'home')],
+                      [(3, 'home'), (6, 'home'), (1, 'away'), (5, 'away'), (2, 'away'), (1, 'home'), (5, 'home'), (2, 'home'), (6, 'away'), (3, 'away')],
+                      [(2, 'away'), (3, 'away'), (6, 'home'), (4, 'home'), (1, 'home'), (6, 'away'), (4, 'away'), (1, 'away'), (3, 'home'), (2, 'home')],
+                      [(1, 'away'), (4, 'away'), (5, 'away'), (2, 'home'), (3, 'away'), (5, 'home'), (2, 'away'), (3, 'home'), (4, 'home'), (1, 'home')]]
+            self.number_teams = 6
+            self.weeks = (2 * self.number_teams) - 2
 
-        S = self.swap_rounds(self.S)
+        self.print_schedule(self.S)
+        S = self.swap_teams(self.S)
         self.print_schedule(self.S)
 
 
@@ -148,7 +158,7 @@ class TTSA():
     #   the choice is just made inside of the function instead of being passed in.
     def swap_rounds(self, S):
         # Choose two different rounds to swap
-        choices = random.sample(list(range(len(S)-1)), 2)
+        choices = random.sample(list(range(len(S[0]))), 2)
 
         # Iterate through the teams swapping each rounds
         for team in range(len(S)):
@@ -158,6 +168,34 @@ class TTSA():
             S[team][choices[1]] = game_one
 
         return S
+
+    # This move swaps the schedule for teams i and j except of course, when they play against each other
+    # Because this is going to be a random choice everytime the function is called,
+    #   the choice is just made inside of the function instead of being passed in.
+    def swap_teams(self, S):
+        # Choose two different teams to swap
+        choices = random.sample(list(range(len(S)-1)), 2)
+
+        # Swap the teams completely
+        team_one = S[choices[0]]
+        team_two = S[choices[1]]
+        S[choices[0]] = team_two
+        S[choices[1]] = team_one
+
+        # Resolve the same team conflicts
+        for game in range(len(S[choices[0]])):
+            # If the team is playing itself fix it and resolve opponent
+            if S[choices[0]][game][0] - 1 is choices[0]:
+                S[choices[0]][game] = self.home_away(S[choices[1]][game])
+                S = self.set_opponent(S, choices[0], game)
+
+        # Resolve the opponents
+        for team in choices:
+            for game in range(len(S[team])):
+                S = self.set_opponent(S, team, game)
+
+        return S
+
 
     # Print Functions for the Schedule
     def str_schedule(self, S):
