@@ -41,7 +41,7 @@ class TTSA():
             self.weeks = (2 * self.number_teams) - 2
 
         self.print_schedule(self.S)
-        S = self.swap_teams(self.S)
+        S = self.partial_swap_rounds(self.S)
         self.print_schedule(self.S)
 
 
@@ -174,7 +174,7 @@ class TTSA():
     #   the choice is just made inside of the function instead of being passed in.
     def swap_teams(self, S):
         # Choose two different teams to swap
-        choices = random.sample(list(range(len(S)-1)), 2)
+        choices = random.sample(list(range(len(S))), 2)
 
         # Swap the teams completely
         team_one = S[choices[0]]
@@ -195,6 +195,44 @@ class TTSA():
                 S = self.set_opponent(S, team, game)
 
         return S
+
+    # This mode considers team T and swaps its games at round k and l
+    # Because this is going to be a random choice everytime the function is called,
+    #   the choice is just made inside of the function instead of being passed in.
+    def partial_swap_rounds(self, S):
+        # Choose a random team and two random rounds to swap
+        s_team = random.sample(list(range(len(S))), 1)[0]
+        s_rounds = random.sample(list(range(len(S[0]))), 2)
+
+        # Create a starting list that has the team and its opponents
+        p_swap = [s_team]
+        print(p_swap)
+        print(s_rounds)
+
+        # Chain ejection until everything is in the list
+        while 1:
+
+            # loop through the list adding new teams if necessary
+            for item in p_swap:
+                print(S[item][s_rounds[0]][0]-1)
+                if S[item][s_rounds[0]][0]-1 not in p_swap:
+                    p_swap.append(S[item][s_rounds[0]][0]-1)
+
+                print(S[item][s_rounds[1]][0]-1)
+                if S[item][s_rounds[1]][0]-1 not in p_swap:
+                    p_swap.append(S[item][s_rounds[1]][0]-1)
+
+            # Check to see if the list is fully inclusive
+            if (S[p_swap[-1]][s_rounds[0]][0]-1 in p_swap) and (S[p_swap[-1]][s_rounds[1]][0]-1 in p_swap) and (S[p_swap[-2]][s_rounds[0]][0]-1 in p_swap) and (S[p_swap[-2]][s_rounds[1]][0]-1 in p_swap):
+                break
+
+        # Lop=op through the list for one of the rounds and swap all the games in the list
+        print(p_swap)
+
+    # Given a game return the opponent. Home/Away is not returned
+    def get_opponent(self, S, i, j):
+        game = S[i][j]
+
 
 
     # Print Functions for the Schedule
