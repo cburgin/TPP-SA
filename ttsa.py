@@ -14,16 +14,28 @@ __status__ = "in progress"
 # Standard Python Libraries
 import random
 import operator, itertools
+import sys, copy
 
 class TTSA():
     """Traveling Tournament Simulated Annealing"""
 
     def __init__(self, number_teams, seed):
 
-        # Calculate schedule vars.
+        # Calculate schedule vars
         self.number_teams = number_teams
         self.weeks = (2 * self.number_teams) - 2
         self.current_cost = None
+
+        # SA Parameters
+        self.tau_not = 400
+        self.beta = 0.9999
+        self.omega = 4000
+        self.delta = 1.04
+        self.theta = 1.04
+        self.maxC = 5000
+        self.maxP = 7100
+        self.maxR = 10
+        self.gamma = 2
 
         # Set all the default vars for SA
         self.S = self.build_schedule(self.number_teams)
@@ -39,14 +51,113 @@ class TTSA():
         self.cost_matrix = self.get_cost_matrix(self.number_teams)
 
         # Perform the simulated annealing to solve the schedule
-        self.simulated_annealing()
+        # self.simulated_annealing()
+        print(self.nbv(self.S))
 
         # Print out the resulting schedule
         self.print_schedule(self.S)
 
     # The Simulated Annelaing Algorithm TTSA from the TTP paper figure 2
     def simulated_annealing(self):
-        pass
+        # Set default vars
+        best_feasible = sys.maxsize
+        nbf = sys.maxsize
+        best_infeasible = sys.maxsize
+        nbi = sys.maxsize
+        best_tau = self.tau_not
+        tau = self.tau_not
+        reheat = 0
+        counter = 0
+
+        # Loop until no more reheats
+        while reheat <= self.maxR:
+            phase = 0
+            while phase <= self.maxP:
+                counter = 0
+                while counter <= self.maxC:
+                    # Make a deepcopy of the schedule
+                    S_prime = copy.deepcopy(self.S)
+                    S_prime = self.random_move(S_prime)
+                    cost_s = self.cost(self.S)
+                    cost_s_p = self.cost(S_prime)
+                    if( (cost_s_p < cost_s) or
+                        (self.nbv(S_prime) == 0) and (cost_s_p < best_feasible) or
+                        (self.nbv(S_prime) > 0) and (cost_s_p < best_infeasible) ):
+                        accept = True
+                    else:
+                        if probability:
+                            accept = True
+                        else:
+                            accept = False
+
+                    # Set new values if it is accepted
+                    if accept is True:
+                        self.S = copy.deepcopy(S_prime)
+                        # Calculate new values for nbf or nbi
+                        if self.nbv(self.S) == 0:
+                            nbf = min(self.cost(self.S), best_feasible)
+                        else:
+                            nbi = min(self.cost(self.S), best_infeasible)
+
+                        # Restart the process if a better feasible or infeasible solution is found
+                        if (nbf < best_feasible) or (nbi < best_infeasible):
+                            reheat = 0
+                            counter = 0
+                            phase = 0
+                            best_tau = tau
+                            best_feasible = nbf
+                            best_infeasible = nbi
+
+                            # Calculate new omega
+                            if self.nbv(self.S) == 0:
+                                self.omega = self.omega / self.theta
+                            else:
+                                self.omega = self.omega * self.delta
+                        else:
+                            counter += 1
+                    # End counter Loop
+                phase += 1
+                tau = tau * self.beta
+                # End phase Loop
+            reheat += 1
+            tau = 2 * best_tau
+            # End reheat Loop
+
+    def random_move(self, S):
+        # Select a random function to call on the schedule
+        choice = random.randint(0,4)
+
+        # Select and perform the operation
+        if choice is 0:
+            return self.swap_homes(S)
+        elif choice is 1:
+            return self.swap_rounds(S)
+        elif choice is 2:
+            return self.swap_teams(S)
+        elif choice is 3:
+            return self.partial_swap_rounds(S)
+        else:
+            return self.partial_swap_teams(S)
+
+    # Determine the number of violations in a given schedule
+    def nbv(self, S):
+        violations = 0
+        # Loop through the schedule looking for non-repeat violations
+        for team in range(len(S)):
+            for game in range(1, len(S[team])):
+                if S[team][game-1][0] is S[team][game][0]:
+                    violations += 1
+
+        # Loop through the schedule looking for atmost violations
+        for team in range(len(S)):
+            for game in range(2, len(S[team])):
+                if S[team][game-2][1] == "home" and S[team][game-1][1] == "home" and S[team][game][1] == "home":
+                    violations += 1
+
+                if S[team][game-2][1] == "away" and S[team][game-1][1] == "away" and S[team][game][1] == "away":
+                    violations += 1
+
+        return violations
 
     # Builds the cost matrix for the coresponding number of teams
     def get_cost_matrix(self, number_teams):
@@ -350,4 +461,4 @@ class TTSA():
         for row in S:
             print(*row, sep="\t")
 
-        print("\nCost:", self.cost(self.S, self.cost_matrix))
+        print("\nCost:", self.cost(S, self.cost_matrix))
