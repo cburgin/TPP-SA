@@ -44,7 +44,7 @@ class TTSA():
             self.weeks = (2 * self.number_teams) - 2
 
         self.print_schedule(self.S)
-        S = self.partial_swap_rounds(self.S)
+        S = self.partial_swap_teams(self.S)
         self.print_schedule(self.S)
 
 
@@ -212,7 +212,6 @@ class TTSA():
 
         # Chain ejection until everything is in the list
         while 1:
-
             # loop through the list adding new teams if necessary
             for item in p_swap:
                 if S[item][s_rounds[0]][0]-1 not in p_swap:
@@ -227,17 +226,73 @@ class TTSA():
 
         # Loop through the list for one of the rounds and swap all the games in the list
         for item in p_swap:
-            S = self.swap_game(S, item, s_rounds[0], s_rounds[1])
+            S = self.swap_game_round(S, item, s_rounds[0], s_rounds[1])
 
         return S
 
-    # Given a game return the opponent. Home/Away is not returned
-    def swap_game(self, S, t, rl, rk):
+    # Swap games by same team different rounds
+    def swap_game_round(self, S, t, rl, rk):
         game_one = S[t][rl]
         game_two = S[t][rk]
         S[t][rl] = game_two
         S[t][rk] = game_one
         return S
+
+    # This move considers round rk and swaps the games of teams Ti and Tj
+    # Because this is going to be a random choice everytime the function is called,
+    #   the choice is just made inside of the function instead of being passed in.
+    def partial_swap_teams(self, S):
+        # Choose a random round and two random teams to swap
+        s_round = random.sample(list(range(len(S[0]))), 1)[0]
+        s_teams = random.sample(list(range(len(S))), 2)
+
+        # Handle case where the games cannot be swapped because it is invalid (cant play yourself)
+        if not (set(s_teams) - set([S[s_teams[0]][s_round][0]-1, S[s_teams[1]][s_round][0]-1])):
+            return S
+
+        # Create a starting list
+        p_swap = [S[s_teams[0]][s_round], S[s_teams[1]][s_round]]
+
+        # Chain ejection until everything is in the list
+        while 1:
+            # Loop through the list adding new teams if necessary
+            for item in p_swap:
+                if self.get_concurrent(S, s_teams[0], s_teams[1], item) not in p_swap:
+                    p_swap.append(self.get_concurrent(S, s_teams[0], s_teams[1], item))
+
+                if self.get_concurrent(S, s_teams[1], s_teams[0], item) not in p_swap:
+                    p_swap.append(self.get_concurrent(S, s_teams[1], s_teams[0], item))
+
+            if( (self.get_concurrent(S, s_teams[0], s_teams[1], p_swap[-1]) in p_swap) and (self.get_concurrent(S, s_teams[1], s_teams[0], p_swap[-1]) in p_swap) and
+                (self.get_concurrent(S, s_teams[0], s_teams[1], p_swap[-2]) in p_swap) and (self.get_concurrent(S, s_teams[1], s_teams[0], p_swap[-2]) in p_swap) ):
+                break
+
+        # Get the indices of the games found
+        p_indices = []
+        for item in p_swap:
+            p_indices.append(S[s_teams[0]].index(item))
+
+        # Loop through the list for one of the teams and swap all of the games and resolve opponents
+        for idx in p_indices:
+            S = self.swap_game_team(S, idx, s_teams[0], s_teams[1])
+
+        return S
+
+    # Swap games by same round different teams and resolve opponents
+    def swap_game_team(self, S, r, T1, T2):
+        game_one = S[T1][r]
+        game_two = S[T2][r]
+        S[T1][r] = game_two
+        S[T2][r] = game_one
+        S = self.set_opponent(S, T1, r)
+        S = self.set_opponent(S, T2, r)
+        return S
+
+    # Given a two teams and a game, find the concurrent game for the other teams
+    def get_concurrent(self, S, T1, T2, game):
+        for i, j in enumerate(S[T1]):
+            if j == game:
+                return S[T2][i]
 
     # Print Functions for the Schedule
     def str_schedule(self, S):
