@@ -13,6 +13,7 @@ __status__ = "in progress"
 
 # Standard Python Libraries
 import argparse
+import time
 
 # TTSA Includes
 from ttsa import TTSA
@@ -34,4 +35,6 @@ def main():
     ttsa = TTSA(args.number_teams[0], args.seed, args.default_schedule)
 
 if __name__ =='__main__':
+    start_time = time.time()
     main()
+    print("--- %s seconds ---" % (time.time() - start_time))

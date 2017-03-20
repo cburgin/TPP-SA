@@ -23,12 +23,17 @@ class TTSA():
         # Calculate schedule vars.
         self.number_teams = number_teams
         self.weeks = (2 * self.number_teams) - 2
+        self.current_cost = None
 
         # Seed PRNG
         if seed is 0:
             random.seed()
         else:
             random.seed(seed)
+
+        # Read in the cost matrix
+        self.cost_matrix = []
+        self.cost_matrix = self.get_cost_matrix(self.number_teams)
 
         # Build a starting schedule or use the starting schedule from the paper
         if default_schedule is False:
@@ -43,7 +48,56 @@ class TTSA():
             self.number_teams = 6
             self.weeks = (2 * self.number_teams) - 2
 
+        self.current_cost = self.cost(self.S, self.cost_matrix)
+        print("Current cost:", self.current_cost)
+
         self.print_schedule(self.S)
+
+    # Builds the cost matrix for the coresponding number of teams
+    def get_cost_matrix(self, number_teams):
+        file_name = "data/data" + str(number_teams) + ".txt"
+        l = []
+        with open(file_name, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if len(line) > 0:
+                    l.append(line.split())
+
+        return l
+
+    # Calculate the cost of the input schedule
+    def cost(self, S, cost_m):
+        total_cost = 0
+        # Loop through the schedule calculating the cost along the way
+        for team in S:
+            i = S.index(team)
+            team.append((None, "home"))
+            for game in team:
+                j = team.index(game)
+                start_loc = None
+                dest_loc = None
+                # Handle the first game case, get start location
+                if j is 0:
+                    start_loc = i
+                else:
+                    if team[j-1][1] is "home":
+                        start_loc = i
+                    else:
+                        start_loc = team[j-1][0] - 1
+
+                # Handle the last game case, get the travel location
+                if j is len(team) - 1:
+                    dest_loc = i
+                else:
+                    if team[j][1] is "home":
+                        dest_loc = i
+                    else:
+                        dest_loc = team[j][0] - 1
+                # Cost
+                total_cost += int(cost_m[start_loc][dest_loc])
+            # Pop off the placeholder location
+            team.pop()
+        return total_cost
 
     # Builds a random starting schedule to build and improve on
     def build_schedule(self, number_teams):
@@ -300,3 +354,5 @@ class TTSA():
         print("\nThe Current Schedule\n")
         for row in S:
             print(*row, sep="\t")
+
+        print("")
