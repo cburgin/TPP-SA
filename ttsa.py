@@ -44,9 +44,6 @@ class TTSA():
             self.weeks = (2 * self.number_teams) - 2
 
         self.print_schedule(self.S)
-        S = self.partial_swap_teams(self.S)
-        self.print_schedule(self.S)
-
 
     # Builds a random starting schedule to build and improve on
     def build_schedule(self, number_teams):
