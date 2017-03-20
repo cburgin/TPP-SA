@@ -18,12 +18,15 @@ import operator, itertools
 class TTSA():
     """Traveling Tournament Simulated Annealing"""
 
-    def __init__(self, number_teams, seed, default_schedule):
+    def __init__(self, number_teams, seed):
 
         # Calculate schedule vars.
         self.number_teams = number_teams
         self.weeks = (2 * self.number_teams) - 2
         self.current_cost = None
+
+        # Set all the default vars for SA
+        self.S = self.build_schedule(self.number_teams)
 
         # Seed PRNG
         if seed is 0:
@@ -35,23 +38,15 @@ class TTSA():
         self.cost_matrix = []
         self.cost_matrix = self.get_cost_matrix(self.number_teams)
 
-        # Build a starting schedule or use the starting schedule from the paper
-        if default_schedule is False:
-            self.S = self.build_schedule(self.number_teams)
-        else:
-            self.S = [[(6, 'home'), (2, 'away'), (4, 'home'), (3, 'home'), (5, 'away'), (4, 'away'), (3, 'away'), (5, 'home'), (2, 'home'), (6, 'away')],
-                      [(5, 'home'), (1, 'home'), (3, 'away'), (6, 'away'), (4, 'home'), (3, 'home'), (6, 'home'), (4, 'away'), (1, 'away'), (5, 'away')],
-                      [(4, 'away'), (5, 'home'), (2, 'home'), (1, 'away'), (6, 'home'), (2, 'away'), (1, 'home'), (6, 'away'), (5, 'away'), (4, 'home')],
-                      [(3, 'home'), (6, 'home'), (1, 'away'), (5, 'away'), (2, 'away'), (1, 'home'), (5, 'home'), (2, 'home'), (6, 'away'), (3, 'away')],
-                      [(2, 'away'), (3, 'away'), (6, 'home'), (4, 'home'), (1, 'home'), (6, 'away'), (4, 'away'), (1, 'away'), (3, 'home'), (2, 'home')],
-                      [(1, 'away'), (4, 'away'), (5, 'away'), (2, 'home'), (3, 'away'), (5, 'home'), (2, 'away'), (3, 'home'), (4, 'home'), (1, 'home')]]
-            self.number_teams = 6
-            self.weeks = (2 * self.number_teams) - 2
+        # Perform the simulated annealing to solve the schedule
+        self.simulated_annealing()
 
-        self.current_cost = self.cost(self.S, self.cost_matrix)
-        print("Current cost:", self.current_cost)
-
+        # Print out the resulting schedule
         self.print_schedule(self.S)
+
+    # The Simulated Annelaing Algorithm TTSA from the TTP paper figure 2
+    def simulated_annealing(self):
+        pass
 
     # Builds the cost matrix for the coresponding number of teams
     def get_cost_matrix(self, number_teams):
@@ -351,8 +346,8 @@ class TTSA():
 
     # Prints the schedule in a way that is readable
     def print_schedule(self, S):
-        print("\nThe Current Schedule\n")
+        print("\nThe Schedule\n")
         for row in S:
             print(*row, sep="\t")
 
-        print("")
+        print("\nCost:", self.cost(self.S, self.cost_matrix))
