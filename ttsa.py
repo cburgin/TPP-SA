@@ -13,14 +13,13 @@ __status__ = "in progress"
 
 # Standard Python Libraries
 import random
-import operator, itertools
 import sys, copy
 import math
 
 class TTSA():
     """Traveling Tournament Simulated Annealing"""
 
-    def __init__(self, number_teams, seed):
+    def __init__(self, number_teams, seed, tau, beta, omega, delta, theta, maxc, maxp, maxr, gamma):
         # Seed PRNG
         if seed is 0:
             random.seed()
@@ -30,18 +29,20 @@ class TTSA():
         # Calculate schedule vars
         self.number_teams = number_teams
         self.weeks = (2 * self.number_teams) - 2
-        self.current_cost = None
+        self.best_feasible_S = []
+        self.best_infeasible_S = []
 
         # SA Parameters
-        self.tau_not = 400
-        self.beta = 0.9999
-        self.omega = 4000
-        self.delta = 1.04
-        self.theta = 1.04
-        self.maxC = 50
-        self.maxP = 71
-        self.maxR = 2
-        self.gamma = 2
+        self.tau_not = tau
+        self.beta = beta
+        self.omega_not = omega
+        self.omega = omega
+        self.delta = delta
+        self.theta = theta
+        self.maxC = maxc
+        self.maxP = maxp
+        self.maxR = maxr
+        self.gamma = gamma
 
         # Set all the default vars for SA
         self.S = self.build_schedule(self.number_teams)
@@ -50,13 +51,14 @@ class TTSA():
         self.cost_matrix = []
         self.cost_matrix = self.get_cost_matrix(self.number_teams)
 
-        self.print_schedule(self.S)
-
         # Perform the simulated annealing to solve the schedule
         self.simulated_annealing()
 
-        # Print out the resulting schedule
-        self.print_schedule(self.S)
+        # Print out the stats / result
+        print("\nThe best feasible schedule:")
+        self.print_schedule(self.best_feasible_S)
+        print("\nCost: " + str(self.cost_ttsa(self.best_feasible_S)))
+        print("Tau_0:", self.tau_not, "\tBeta:", self.beta, "\tOmega_0:", self.omega_not, "\tDelta:", self.delta, "\tTheta:", self.theta, "\tMaxC:", self.maxC, "\tMaxP:", self.maxP, "\tMaxR:", self.maxR, "\tGamma:", self.gamma, "\n")
 
     # The Simulated Annelaing Algorithm TTSA from the TTP paper figure 2
     def simulated_annealing(self):
@@ -81,15 +83,22 @@ class TTSA():
                     S_prime = self.random_move(S_prime)
                     cost_s = self.cost_ttsa(self.S)
                     cost_s_p = self.cost_ttsa(S_prime)
+                    nbv_s_p = self.nbv(S_prime)
                     if( (cost_s_p < cost_s) or
-                        (self.nbv(S_prime) == 0) and (cost_s_p < best_feasible) or
-                        (self.nbv(S_prime) > 0) and (cost_s_p < best_infeasible) ):
+                        (nbv_s_p == 0) and (cost_s_p < best_feasible) or
+                        (nbv_s_p > 0) and (cost_s_p < best_infeasible) ):
                         accept = True
                     else:
                         if math.exp(-abs(cost_s - cost_s_p) / tau) > random.random():
                             accept = True
                         else:
                             accept = False
+
+                    # Update best found feasible and infeasible schedules if necessary
+                    if cost_s_p < best_feasible and nbv_s_p == 0:
+                        self.best_feasible_S = copy.deepcopy(S_prime)
+                    if cost_s_p < best_infeasible and nbv_s_p > 0:
+                        self.best_infeasible_S = copy.deepcopy(S_prime)
 
                     # Set new values if it is accepted
                     if accept is True:
@@ -99,6 +108,7 @@ class TTSA():
                             nbf = min(self.cost_ttsa(self.S), best_feasible)
                         else:
                             nbi = min(self.cost_ttsa(self.S), best_infeasible)
+                            self.best_infeasible_S = copy.deepcopy(S_prime)
 
                         # Restart the process if a better feasible or infeasible solution is found
                         if (nbf < best_feasible) or (nbi < best_infeasible):
@@ -123,10 +133,6 @@ class TTSA():
             reheat += 1
             tau = 2 * best_tau
             # End reheat Loop
-        self.print_schedule(S_prime)
-
-        print("best feasible:", best_feasible)
-        print("best infeasible:", best_infeasible)
 
     def random_move(self, S):
         # Select a random function to call on the schedule
@@ -470,8 +476,5 @@ class TTSA():
 
     # Prints the schedule in a way that is readable
     def print_schedule(self, S):
-        print("\nThe Schedule\n")
         for row in S:
             print(*row, sep="\t")
-
-        print("\nCost:", self.cost_ttsa(S))
