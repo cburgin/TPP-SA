@@ -58,7 +58,7 @@ class TTSA():
         print("\nThe best feasible schedule:")
         self.print_schedule(self.best_feasible_S)
         print("\nCost: " + str(self.cost_ttsa(self.best_feasible_S)))
-        print("Tau_0:", self.tau_not, "\tBeta:", self.beta, "\tOmega_0:", self.omega_not, "\tDelta:", self.delta, "\tTheta:", self.theta, "\tMaxC:", self.maxC, "\tMaxP:", self.maxP, "\tMaxR:", self.maxR, "\tGamma:", self.gamma, "\n")
+        print("Seed:", seed, "\tTau_0:", self.tau_not, "\tBeta:", self.beta, "\tOmega_0:", self.omega_not, "\tDelta:", self.delta, "\tTheta:", self.theta, "\tMaxC:", self.maxC, "\tMaxP:", self.maxP, "\tMaxR:", self.maxR, "\tGamma:", self.gamma, "\n")
 
     # The Simulated Annelaing Algorithm TTSA from the TTP paper figure 2
     def simulated_annealing(self):
