@@ -15,11 +15,17 @@ __status__ = "in progress"
 import random
 import operator, itertools
 import sys, copy
+import math
 
 class TTSA():
     """Traveling Tournament Simulated Annealing"""
 
     def __init__(self, number_teams, seed):
+        # Seed PRNG
+        if seed is 0:
+            random.seed()
+        else:
+            random.seed(seed)
 
         # Calculate schedule vars
         self.number_teams = number_teams
@@ -32,27 +38,22 @@ class TTSA():
         self.omega = 4000
         self.delta = 1.04
         self.theta = 1.04
-        self.maxC = 5000
-        self.maxP = 7100
-        self.maxR = 10
+        self.maxC = 50
+        self.maxP = 71
+        self.maxR = 2
         self.gamma = 2
 
         # Set all the default vars for SA
         self.S = self.build_schedule(self.number_teams)
 
-        # Seed PRNG
-        if seed is 0:
-            random.seed()
-        else:
-            random.seed(seed)
-
         # Read in the cost matrix
         self.cost_matrix = []
         self.cost_matrix = self.get_cost_matrix(self.number_teams)
 
+        self.print_schedule(self.S)
+
         # Perform the simulated annealing to solve the schedule
-        # self.simulated_annealing()
-        print(self.nbv(self.S))
+        self.simulated_annealing()
 
         # Print out the resulting schedule
         self.print_schedule(self.S)
@@ -78,14 +79,14 @@ class TTSA():
                     # Make a deepcopy of the schedule
                     S_prime = copy.deepcopy(self.S)
                     S_prime = self.random_move(S_prime)
-                    cost_s = self.cost(self.S)
-                    cost_s_p = self.cost(S_prime)
+                    cost_s = self.cost_ttsa(self.S)
+                    cost_s_p = self.cost_ttsa(S_prime)
                     if( (cost_s_p < cost_s) or
                         (self.nbv(S_prime) == 0) and (cost_s_p < best_feasible) or
                         (self.nbv(S_prime) > 0) and (cost_s_p < best_infeasible) ):
                         accept = True
                     else:
-                        if probability:
+                        if math.exp(-abs(cost_s - cost_s_p) / tau) > random.random():
                             accept = True
                         else:
                             accept = False
@@ -95,9 +96,9 @@ class TTSA():
                         self.S = copy.deepcopy(S_prime)
                         # Calculate new values for nbf or nbi
                         if self.nbv(self.S) == 0:
-                            nbf = min(self.cost(self.S), best_feasible)
+                            nbf = min(self.cost_ttsa(self.S), best_feasible)
                         else:
-                            nbi = min(self.cost(self.S), best_infeasible)
+                            nbi = min(self.cost_ttsa(self.S), best_infeasible)
 
                         # Restart the process if a better feasible or infeasible solution is found
                         if (nbf < best_feasible) or (nbi < best_infeasible):
@@ -122,6 +123,10 @@ class TTSA():
             reheat += 1
             tau = 2 * best_tau
             # End reheat Loop
+        self.print_schedule(S_prime)
+
+        print("best feasible:", best_feasible)
+        print("best infeasible:", best_infeasible)
 
     def random_move(self, S):
         # Select a random function to call on the schedule
@@ -150,11 +155,11 @@ class TTSA():
 
         # Loop through the schedule looking for atmost violations
         for team in range(len(S)):
-            for game in range(2, len(S[team])):
-                if S[team][game-2][1] == "home" and S[team][game-1][1] == "home" and S[team][game][1] == "home":
+            for game in range(3, len(S[team])):
+                if S[team][game-3][1] == "home" and S[team][game-2][1] == "home" and S[team][game-1][1] == "home" and S[team][game][1] == "home":
                     violations += 1
 
-                if S[team][game-2][1] == "away" and S[team][game-1][1] == "away" and S[team][game][1] == "away":
+                if S[team][game-3][1] == "away" and S[team][game-2][1] == "away" and S[team][game-1][1] == "away" and S[team][game][1] == "away":
                     violations += 1
 
         return violations
@@ -171,9 +176,21 @@ class TTSA():
 
         return l
 
+    # Calculate the TTSA cost
+    def cost_ttsa(self, S):
+        if self.nbv(S) == 0:
+            return self.cost(S)
+        else:
+            return math.sqrt(self.cost(S)**2 + (self.omega * self.fun(self.nbv(S))**2))
+
+    # define fun (f function)
+    def fun(self, v):
+        return 1 + math.sqrt(v) * math.log(v / 2)
+
     # Calculate the cost of the input schedule
-    def cost(self, S, cost_m):
+    def cost(self, S):
         total_cost = 0
+        cost_m = self.cost_matrix
         # Loop through the schedule calculating the cost along the way
         for team in S:
             i = S.index(team)
@@ -451,14 +468,10 @@ class TTSA():
             if j == game:
                 return S[T2][i]
 
-    # Print Functions for the Schedule
-    def str_schedule(self, S):
-        return '\n'.join(''.join(['%16s'%(col,) for col in row]) for row in S)+'\n'
-
     # Prints the schedule in a way that is readable
     def print_schedule(self, S):
         print("\nThe Schedule\n")
         for row in S:
             print(*row, sep="\t")
 
-        print("\nCost:", self.cost(S, self.cost_matrix))
+        print("\nCost:", self.cost_ttsa(S))
